@@ -1,6 +1,6 @@
 # VLAReplica
 
-__For full setup instructions, refer to the [setup docs](https://irvlutd.github.io/VLAReplica/setup-docs/).__
+__For full setup instructions with pictures and videos, refer to the [setup docs](https://irvlutd.github.io/VLAReplica/setup-docs/).__
 
 ## Repository setup
 
@@ -211,4 +211,4 @@ The full list of tasks is located under [Task Reference](../task-reference)
 | Press button | Press the button the required number of times | Correct number of presses completed |
 | Collect blocks | Put all blocks into the correct box | All blocks are in the target box and the arm returns home |
 
-__For full setup instructions, refer to the [setup docs](https://irvlutd.github.io/VLAReplica/setup-docs/).__
+__For full setup instructions with pictures and videos, refer to the [setup docs](https://irvlutd.github.io/VLAReplica/setup-docs/).__
