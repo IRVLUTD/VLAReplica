@@ -1,0 +1,707 @@
+{
+  "tasks": [
+    {
+      "id": "task_01",
+      "name": "Put bread on plate.",
+      "description": "Place the specified bread onto the specified plate",
+      "reference_dir": "referencePics/task01",
+      "subtasks": [
+        {
+          "id": "task_01_indist_easy_1",
+          "name": "[In-Dist | Easy] Put A bread on the red plate",
+          "split": "in-distribution",
+          "difficulty": "easy",
+          "reference_dir": "referencePics/task01/pic1.jpg"
+        },
+        {
+          "id": "task_01_indist_easy_2",
+          "name": "[In-Dist | Easy] Put B bread on the blue plate",
+          "split": "in-distribution",
+          "difficulty": "easy",
+          "reference_dir": "referencePics/task01/pic2.jpg"
+        },
+        {
+          "id": "task_01_indist_med_1",
+          "name": "[In-Dist | Medium] Put A bread on the blue plate",
+          "split": "in-distribution",
+          "difficulty": "medium",
+          "reference_dir": "referencePics/task01/pic3.jpg"
+        },
+        {
+          "id": "task_01_indist_med_2",
+          "name": "[In-Dist | Medium] Put B bread on the red plate",
+          "split": "in-distribution",
+          "difficulty": "medium",
+          "reference_dir": "referencePics/task01/pic4.jpg"
+        },
+        {
+          "id": "task_01_indist_hard_1",
+          "name": "[In-Dist | Hard] Put A bread on the red plate (2 distractors)",
+          "split": "in-distribution",
+          "difficulty": "hard",
+          "reference_dir": "referencePics/task01/pic5.jpg"
+        },
+        {
+          "id": "task_01_ood_easy_1",
+          "name": "[OOD | Easy] Put C bread on the red plate",
+          "split": "ood",
+          "difficulty": "easy",
+          "reference_dir": "referencePics/task01"
+        },
+        {
+          "id": "task_01_ood_easy_2",
+          "name": "[OOD | Easy] Put C bread on the blue plate",
+          "split": "ood",
+          "difficulty": "easy",
+          "reference_dir": "referencePics/task01"
+        },
+        {
+          "id": "task_01_ood_med_1",
+          "name": "[OOD | Medium] Put A bread on the yellow plate",
+          "split": "ood",
+          "difficulty": "medium",
+          "reference_dir": "referencePics/task01"
+        },
+        {
+          "id": "task_01_ood_med_2",
+          "name": "[OOD | Medium] Put B bread on the yellow plate",
+          "split": "ood",
+          "difficulty": "medium",
+          "reference_dir": "referencePics/task01"
+        },
+        {
+          "id": "task_01_ood_hard_1",
+          "name": "[OOD | Hard] Put C bread on the yellow plate",
+          "split": "ood",
+          "difficulty": "hard",
+          "reference_dir": "referencePics/task01"
+        }
+      ]
+    },
+    {
+      "id": "task_02",
+      "name": "Put the bowl on the coaster.",
+      "description": "Place the specified bowl onto the specified coaster",
+      "reference_dir": "referencePics/task02",
+      "subtasks": [
+        {
+          "id": "task_02_indist_easy_1",
+          "name": "[In-Dist | Easy] Put red bowl on green coaster",
+          "split": "in-distribution",
+          "difficulty": "easy",
+          "reference_dir": "referencePics/task02/pic1.jpg"
+        },
+        {
+          "id": "task_02_indist_easy_2",
+          "name": "[In-Dist | Easy] Put blue bowl on orange coaster",
+          "split": "in-distribution",
+          "difficulty": "easy",
+          "reference_dir": "referencePics/task02/pic2.jpg"
+        },
+        {
+          "id": "task_02_indist_med_1",
+          "name": "[In-Dist | Medium] Put blue bowl on green coaster",
+          "split": "in-distribution",
+          "difficulty": "medium",
+          "reference_dir": "referencePics/task02/pic3.jpg"
+        },
+        {
+          "id": "task_02_indist_med_2",
+          "name": "[In-Dist | Medium] Put red bowl on the purple coaster",
+          "split": "in-distribution",
+          "difficulty": "medium",
+          "reference_dir": "referencePics/task02/pic4.jpg"
+        },
+        {
+          "id": "task_02_indist_hard_1",
+          "name": "[In-Dist | Hard] Put yellow bowl on the purple coaster (2 distractors)",
+          "split": "in-distribution",
+          "difficulty": "hard",
+          "reference_dir": "referencePics/task02/pic5.jpg"
+        },
+        {
+          "id": "task_02_ood_easy_1",
+          "name": "[OOD | Easy] Put blue bowl on the purple coaster",
+          "split": "ood",
+          "difficulty": "easy",
+          "reference_dir": "referencePics/task02"
+        },
+        {
+          "id": "task_02_ood_easy_2",
+          "name": "[OOD | Easy] Put red bowl on the orange coaster",
+          "split": "ood",
+          "difficulty": "easy",
+          "reference_dir": "referencePics/task02"
+        },
+        {
+          "id": "task_02_ood_med_1",
+          "name": "[OOD | Medium] Put yellow bowl on the green coaster",
+          "split": "ood",
+          "difficulty": "medium",
+          "reference_dir": "referencePics/task02"
+        },
+        {
+          "id": "task_02_ood_med_2",
+          "name": "[OOD | Medium] Put yellow bowl on the orange coaster",
+          "split": "ood",
+          "difficulty": "medium",
+          "reference_dir": "referencePics/task02"
+        },
+        {
+          "id": "task_02_ood_hard_1",
+          "name": "[OOD | Hard] Put green bowl on the yellow coaster (2 distractors)",
+          "split": "ood",
+          "difficulty": "hard",
+          "reference_dir": "referencePics/task02"
+        }
+      ]
+    },
+    {
+      "id": "task_03",
+      "name": "Stack x block on y block.",
+      "description": "Stack the specified block on top of the other specified block",
+      "reference_dir": "referencePics/task03",
+      "subtasks": [
+        {
+          "id": "task_03_indist_easy_1",
+          "name": "[In-Dist | Easy] Stack red block on blue block",
+          "split": "in-distribution",
+          "difficulty": "easy",
+          "reference_dir": "referencePics/task03/pic1.jpg"
+        },
+        {
+          "id": "task_03_indist_easy_2",
+          "name": "[In-Dist | Easy] Stack yellow block on blue block",
+          "split": "in-distribution",
+          "difficulty": "easy",
+          "reference_dir": "referencePics/task03/pic2.jpg"
+        },
+        {
+          "id": "task_03_indist_med_1",
+          "name": "[In-Dist | Medium] Stack blue block on yellow block",
+          "split": "in-distribution",
+          "difficulty": "medium",
+          "reference_dir": "referencePics/task03/pic3.jpg"
+        },
+        {
+          "id": "task_03_indist_med_2",
+          "name": "[In-Dist | Medium] Stack blue block on red block (1 distractor)",
+          "split": "in-distribution",
+          "difficulty": "medium",
+          "reference_dir": "referencePics/task03/pic4.jpg"
+        },
+        {
+          "id": "task_03_indist_hard_1",
+          "name": "[In-Dist | Hard] Stack red block on yellow block (2 distractors)",
+          "split": "in-distribution",
+          "difficulty": "hard",
+          "reference_dir": "referencePics/task03/pic5.jpg"
+        },
+        {
+          "id": "task_03_ood_easy_1",
+          "name": "[OOD | Easy] Stack yellow block on red block",
+          "split": "ood",
+          "difficulty": "easy",
+          "reference_dir": "referencePics/task03"
+        },
+        {
+          "id": "task_03_ood_easy_2",
+          "name": "[OOD | Easy] Stack blue block on blue block",
+          "split": "ood",
+          "difficulty": "easy",
+          "reference_dir": "referencePics/task03"
+        },
+        {
+          "id": "task_03_ood_med_1",
+          "name": "[OOD | Medium] Stack red block on green block",
+          "split": "ood",
+          "difficulty": "medium",
+          "reference_dir": "referencePics/task03"
+        },
+        {
+          "id": "task_03_ood_med_2",
+          "name": "[OOD | Medium] Stack green block on yellow block (1 distractor)",
+          "split": "ood",
+          "difficulty": "medium",
+          "reference_dir": "referencePics/task03"
+        },
+        {
+          "id": "task_03_ood_hard_1",
+          "name": "[OOD | Hard] Stack green block on green block (2 distractors)",
+          "split": "ood",
+          "difficulty": "hard",
+          "reference_dir": "referencePics/task03"
+        }
+      ]
+    },
+    {
+      "id": "task_04",
+      "name": "Fold the x towel in half.",
+      "description": "Fold the specified towel in half",
+      "reference_dir": "referencePics/task04",
+      "subtasks": [
+        {
+          "id": "task_04_indist_easy_1",
+          "name": "[In-Dist | Easy] Fold pink towel in half",
+          "split": "in-distribution",
+          "difficulty": "easy",
+          "reference_dir": "referencePics/task04/pic1.jpg"
+        },
+        {
+          "id": "task_04_indist_easy_2",
+          "name": "[In-Dist | Easy] Fold yellow towel in half",
+          "split": "in-distribution",
+          "difficulty": "easy",
+          "reference_dir": "referencePics/task04/pic2.jpg"
+        },
+        {
+          "id": "task_04_indist_med_1",
+          "name": "[In-Dist | Medium] Fold pink towel in half (1 distractor)",
+          "split": "in-distribution",
+          "difficulty": "medium",
+          "reference_dir": "referencePics/task04/pic3.jpg"
+        },
+        {
+          "id": "task_04_indist_med_2",
+          "name": "[In-Dist | Medium] Fold yellow towel in half (1 distractor)",
+          "split": "in-distribution",
+          "difficulty": "medium",
+          "reference_dir": "referencePics/task04/pic4.jpg"
+        },
+        {
+          "id": "task_04_indist_hard_1",
+          "name": "[In-Dist | Hard] Fold pink towel in half (2 distractors)",
+          "split": "in-distribution",
+          "difficulty": "hard",
+          "reference_dir": "referencePics/task04/pic5.jpg"
+        },
+        {
+          "id": "task_04_ood_easy_1",
+          "name": "[OOD | Easy] Fold blue towel in half",
+          "split": "ood",
+          "difficulty": "easy",
+          "reference_dir": "referencePics/task04"
+        },
+        {
+          "id": "task_04_ood_med_1",
+          "name": "[OOD | Medium] Fold blue towel in half (1 distractor)",
+          "split": "ood",
+          "difficulty": "medium",
+          "reference_dir": "referencePics/task04"
+        },
+        {
+          "id": "task_04_ood_hard_1",
+          "name": "[OOD | Hard] Fold blue towel in half (2 distractors)",
+          "split": "ood",
+          "difficulty": "hard",
+          "reference_dir": "referencePics/task04"
+        }
+      ]
+    },
+    {
+      "id": "task_05",
+      "name": "Open the oven.",
+      "description": "Open the oven door",
+      "reference_dir": "referencePics/task05",
+      "subtasks": [
+        {
+          "id": "task_05_indist_easy_1",
+          "name": "[In-Dist | Easy] Open the oven",
+          "split": "in-distribution",
+          "difficulty": "easy",
+          "reference_dir": "referencePics/task05/pic1.jpg"
+        },
+        {
+          "id": "task_05_indist_easy_2",
+          "name": "[In-Dist | Easy] Open the oven",
+          "split": "in-distribution",
+          "difficulty": "easy",
+          "reference_dir": "referencePics/task05/pic2.jpg"
+        },
+        {
+          "id": "task_05_indist_med_1",
+          "name": "[In-Dist | Medium] Open the oven (1 distractor)",
+          "split": "in-distribution",
+          "difficulty": "medium",
+          "reference_dir": "referencePics/task05/pic3.jpg"
+        },
+        {
+          "id": "task_05_indist_med_2",
+          "name": "[In-Dist | Medium] Open the oven",
+          "split": "in-distribution",
+          "difficulty": "medium",
+          "reference_dir": "referencePics/task05/pic4.jpg"
+        },
+        {
+          "id": "task_05_indist_hard_1",
+          "name": "[In-Dist | Hard] Open the oven (2 distractors)",
+          "split": "in-distribution",
+          "difficulty": "hard",
+          "reference_dir": "referencePics/task05/pic5.jpg"
+        }
+      ]
+    },
+    {
+      "id": "task_06",
+      "name": "Clean the whiteboard with the whiteboard eraser.",
+      "description": "Use the whiteboard eraser to clean the whiteboard",
+      "reference_dir": "referencePics/task06",
+      "subtasks": [
+        {
+          "id": "task_06_indist_easy_1",
+          "name": "[In-Dist | Easy] Clean the whiteboard with the whiteboard eraser",
+          "split": "in-distribution",
+          "difficulty": "easy",
+          "reference_dir": "referencePics/task06/pic1.jpg"
+        },
+        {
+          "id": "task_06_indist_easy_2",
+          "name": "[In-Dist | Easy] Clean the whiteboard with the whiteboard eraser",
+          "split": "in-distribution",
+          "difficulty": "easy",
+          "reference_dir": "referencePics/task06/pic2.jpg"
+        },
+        {
+          "id": "task_06_indist_med_1",
+          "name": "[In-Dist | Medium] Clean the whiteboard with the whiteboard eraser (1 distractor)",
+          "split": "in-distribution",
+          "difficulty": "medium",
+          "reference_dir": "referencePics/task06/pic3.jpg"
+        },
+        {
+          "id": "task_06_indist_med_2",
+          "name": "[In-Dist | Medium] Clean the whiteboard with the whiteboard eraser",
+          "split": "in-distribution",
+          "difficulty": "medium",
+          "reference_dir": "referencePics/task06/pic4.jpg"
+        },
+        {
+          "id": "task_06_indist_hard_1",
+          "name": "[In-Dist | Hard] Clean the whiteboard with the whiteboard eraser (2 distractors)",
+          "split": "in-distribution",
+          "difficulty": "hard",
+          "reference_dir": "referencePics/task06/pic5.jpg"
+        }
+      ]
+    },
+    {
+      "id": "task_07",
+      "name": "Pour pepper into the x plate.",
+      "description": "Pour the specified number of shakes of pepper into the specified plate",
+      "reference_dir": "referencePics/task07",
+      "subtasks": [
+        {
+          "id": "task_07_indist_easy_1",
+          "name": "[In-Dist | Easy] Pour 1 shake of pepper into the red plate",
+          "split": "in-distribution",
+          "difficulty": "easy",
+          "reference_dir": "referencePics/task07/pic1.jpg"
+        },
+        {
+          "id": "task_07_indist_easy_2",
+          "name": "[In-Dist | Easy] Pour 3 shakes of pepper into the red plate",
+          "split": "in-distribution",
+          "difficulty": "easy",
+          "reference_dir": "referencePics/task07/pic2.jpg"
+        },
+        {
+          "id": "task_07_indist_med_1",
+          "name": "[In-Dist | Medium] Pour 2 shakes of pepper into the red plate (1 distractor)",
+          "split": "in-distribution",
+          "difficulty": "medium",
+          "reference_dir": "referencePics/task07/pic3.jpg"
+        },
+        {
+          "id": "task_07_indist_med_2",
+          "name": "[In-Dist | Medium] Pour 1 shake of pepper into the red plate (1 distractor)",
+          "split": "in-distribution",
+          "difficulty": "medium",
+          "reference_dir": "referencePics/task07/pic4.jpg"
+        },
+        {
+          "id": "task_07_indist_hard_1",
+          "name": "[In-Dist | Hard] Pour 3 shakes of pepper into the red plate (2 distractors)",
+          "split": "in-distribution",
+          "difficulty": "hard",
+          "reference_dir": "referencePics/task07/pic5.jpg"
+        },
+        {
+          "id": "task_07_ood_easy_1",
+          "name": "[OOD | Easy] Pour 4 shakes of pepper into the red plate",
+          "split": "ood",
+          "difficulty": "easy",
+          "reference_dir": "referencePics/task07"
+        },
+        {
+          "id": "task_07_ood_easy_2",
+          "name": "[OOD | Easy] Pour 5 shakes of pepper into the red plate",
+          "split": "ood",
+          "difficulty": "easy",
+          "reference_dir": "referencePics/task07"
+        },
+        {
+          "id": "task_07_ood_med_1",
+          "name": "[OOD | Medium] Pour 1 shake of pepper into the blue plate",
+          "split": "ood",
+          "difficulty": "medium",
+          "reference_dir": "referencePics/task07"
+        },
+        {
+          "id": "task_07_ood_med_2",
+          "name": "[OOD | Medium] Pour 3 shakes of pepper into the blue plate",
+          "split": "ood",
+          "difficulty": "medium",
+          "reference_dir": "referencePics/task07"
+        },
+        {
+          "id": "task_07_ood_hard_1",
+          "name": "[OOD | Hard] Pour 5 shakes of pepper into the blue plate (2 distractors)",
+          "split": "ood",
+          "difficulty": "hard",
+          "reference_dir": "referencePics/task07"
+        }
+      ]
+    },
+    {
+      "id": "task_08",
+      "name": "Lift the x bowl y times.",
+      "description": "Lift the specified bowl the specified number of times",
+      "reference_dir": "referencePics/task08",
+      "subtasks": [
+        {
+          "id": "task_08_indist_easy_1",
+          "name": "[In-Dist | Easy] Lift green bowl one time",
+          "split": "in-distribution",
+          "difficulty": "easy",
+          "reference_dir": "referencePics/task08/pic1.jpg"
+        },
+        {
+          "id": "task_08_indist_easy_2",
+          "name": "[In-Dist | Easy] Lift blue bowl one time",
+          "split": "in-distribution",
+          "difficulty": "easy",
+          "reference_dir": "referencePics/task08/pic2.jpg"
+        },
+        {
+          "id": "task_08_indist_med_1",
+          "name": "[In-Dist | Medium] Lift red bowl three times",
+          "split": "in-distribution",
+          "difficulty": "medium",
+          "reference_dir": "referencePics/task08/pic3.jpg"
+        },
+        {
+          "id": "task_08_indist_med_2",
+          "name": "[In-Dist | Medium] Lift green bowl three times (1 distractor)",
+          "split": "in-distribution",
+          "difficulty": "medium",
+          "reference_dir": "referencePics/task08/pic4.jpg"
+        },
+        {
+          "id": "task_08_indist_hard_1",
+          "name": "[In-Dist | Hard] Lift blue bowl three times (2 distractors)",
+          "split": "in-distribution",
+          "difficulty": "hard",
+          "reference_dir": "referencePics/task08/pic5.jpg"
+        },
+        {
+          "id": "task_08_ood_easy_1",
+          "name": "[OOD | Easy] Lift green bowl two times",
+          "split": "ood",
+          "difficulty": "easy",
+          "reference_dir": "referencePics/task08"
+        },
+        {
+          "id": "task_08_ood_easy_2",
+          "name": "[OOD | Easy] Lift blue bowl two times",
+          "split": "ood",
+          "difficulty": "easy",
+          "reference_dir": "referencePics/task08"
+        },
+        {
+          "id": "task_08_ood_med_1",
+          "name": "[OOD | Medium] Lift red bowl two times",
+          "split": "ood",
+          "difficulty": "medium",
+          "reference_dir": "referencePics/task08"
+        },
+        {
+          "id": "task_08_ood_med_2",
+          "name": "[OOD | Medium] Lift yellow bowl two times",
+          "split": "ood",
+          "difficulty": "medium",
+          "reference_dir": "referencePics/task08"
+        },
+        {
+          "id": "task_08_ood_hard_1",
+          "name": "[OOD | Hard] Lift yellow bowl four times (2 distractors)",
+          "split": "ood",
+          "difficulty": "hard",
+          "reference_dir": "referencePics/task08"
+        }
+      ]
+    },
+    {
+      "id": "task_09",
+      "name": "Press the button x times.",
+      "description": "Press the button the specified number of times",
+      "reference_dir": "referencePics/task09",
+      "subtasks": [
+        {
+          "id": "task_09_indist_easy_1",
+          "name": "[In-Dist | Easy] Press button one time",
+          "split": "in-distribution",
+          "difficulty": "easy",
+          "reference_dir": "referencePics/task09/pic1.jpg"
+        },
+        {
+          "id": "task_09_indist_easy_2",
+          "name": "[In-Dist | Easy] Press button three times",
+          "split": "in-distribution",
+          "difficulty": "easy",
+          "reference_dir": "referencePics/task09/pic2.jpg"
+        },
+        {
+          "id": "task_09_indist_med_1",
+          "name": "[In-Dist | Medium] Press button one time (1 distractor)",
+          "split": "in-distribution",
+          "difficulty": "medium",
+          "reference_dir": "referencePics/task09/pic3.jpg"
+        },
+        {
+          "id": "task_09_indist_med_2",
+          "name": "[In-Dist | Medium] Press button three times (1 distractor)",
+          "split": "in-distribution",
+          "difficulty": "medium",
+          "reference_dir": "referencePics/task09/pic4.jpg"
+        },
+        {
+          "id": "task_09_indist_hard_1",
+          "name": "[In-Dist | Hard] Press button three times (2 distractors)",
+          "split": "in-distribution",
+          "difficulty": "hard",
+          "reference_dir": "referencePics/task09/pic5.jpg"
+        },
+        {
+          "id": "task_09_ood_easy_1",
+          "name": "[OOD | Easy] Press button two times",
+          "split": "ood",
+          "difficulty": "easy",
+          "reference_dir": "referencePics/task09"
+        },
+        {
+          "id": "task_09_ood_easy_2",
+          "name": "[OOD | Easy] Press button four times (1 distractor)",
+          "split": "ood",
+          "difficulty": "easy",
+          "reference_dir": "referencePics/task09"
+        },
+        {
+          "id": "task_09_ood_med_1",
+          "name": "[OOD | Medium] Press button two times (2 distractors)",
+          "split": "ood",
+          "difficulty": "medium",
+          "reference_dir": "referencePics/task09"
+        },
+        {
+          "id": "task_09_ood_med_2",
+          "name": "[OOD | Medium] Press button four times (2 distractors)",
+          "split": "ood",
+          "difficulty": "medium",
+          "reference_dir": "referencePics/task09"
+        },
+        {
+          "id": "task_09_ood_hard_1",
+          "name": "[OOD | Hard] Press button five times (2 distractors)",
+          "split": "ood",
+          "difficulty": "hard",
+          "reference_dir": "referencePics/task09"
+        }
+      ]
+    },
+    {
+      "id": "task_10",
+      "name": "Collect all the blocks into the x box.",
+      "description": "Collect the specified number of blocks into the specified box",
+      "reference_dir": "referencePics/task10",
+      "subtasks": [
+        {
+          "id": "task_10_indist_easy_1",
+          "name": "[In-Dist | Easy] Collect 2 blocks into blue box",
+          "split": "in-distribution",
+          "difficulty": "easy",
+          "reference_dir": "referencePics/task10/pic1.jpg"
+        },
+        {
+          "id": "task_10_indist_easy_2",
+          "name": "[In-Dist | Easy] Collect 2 blocks into yellow box",
+          "split": "in-distribution",
+          "difficulty": "easy",
+          "reference_dir": "referencePics/task10/pic2.jpg"
+        },
+        {
+          "id": "task_10_indist_med_1",
+          "name": "[In-Dist | Medium] Collect 3 blocks into blue box (1 non-block distractor)",
+          "split": "in-distribution",
+          "difficulty": "medium",
+          "reference_dir": "referencePics/task10/pic3.jpg"
+        },
+        {
+          "id": "task_10_indist_med_2",
+          "name": "[In-Dist | Medium] Collect 3 blocks into yellow box (extra blocks as distractors)",
+          "split": "in-distribution",
+          "difficulty": "medium",
+          "reference_dir": "referencePics/task10/pic4.jpg"
+        },
+        {
+          "id": "task_10_indist_hard_1",
+          "name": "[In-Dist | Hard] Collect 4 blocks into blue box (extra blocks + non-block distractors)",
+          "split": "in-distribution",
+          "difficulty": "hard",
+          "reference_dir": "referencePics/task10/pic5.jpg"
+        },
+        {
+          "id": "task_10_ood_easy_1",
+          "name": "[OOD | Easy] Collect 2 blocks into pink box",
+          "split": "ood",
+          "difficulty": "easy",
+          "reference_dir": "referencePics/task10"
+        },
+        {
+          "id": "task_10_ood_easy_2",
+          "name": "[OOD | Easy] Collect 3 blocks into pink box",
+          "split": "ood",
+          "difficulty": "easy",
+          "reference_dir": "referencePics/task10"
+        },
+        {
+          "id": "task_10_ood_med_1",
+          "name": "[OOD | Medium] Collect 5 blocks into blue box",
+          "split": "ood",
+          "difficulty": "medium",
+          "reference_dir": "referencePics/task10"
+        },
+        {
+          "id": "task_10_ood_med_2",
+          "name": "[OOD | Medium] Collect 5 blocks into yellow box (extra blocks as distractors)",
+          "split": "ood",
+          "difficulty": "medium",
+          "reference_dir": "referencePics/task10"
+        },
+        {
+          "id": "task_10_ood_hard_1",
+          "name": "[OOD | Hard] Collect 5 blocks into pink box (extra blocks + non-block distractors)",
+          "split": "ood",
+          "difficulty": "hard",
+          "reference_dir": "referencePics/task10"
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "version": "1.0",
+    "created": "2026-04-28",
+    "description": "10 tasks with in-distribution and OOD subtask variations for SO101 policy evaluation",
+    "reference_base_dir": "referencePics",
+    "pic_mapping": "pic1=indist_easy_1, pic2=indist_easy_2, pic3=indist_med_1, pic4=indist_med_2, pic5=indist_hard_1"
+  }
+}
