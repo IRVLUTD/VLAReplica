@@ -72,7 +72,7 @@ We first utilize an AprilTag mounted at a defined spot with respect to the box t
     A GUI window will pop up, displaying the live camera feed alongside the estimated AprilTag pose. 
 
     <figure style="text-align: center; margin: 20px auto;">
-  <img src="../images/app/apriltag_gui.png" width=1200 style="height: auto; border-radius: 4px" alt="System overview diagram">
+  <img src="https://github.com/IRVLUTD/irvlutd.github.io/blob/main/VLAReplica/setup-docs/images/app/apriltag_gui.png" width=1200 style="height: auto; border-radius: 4px" alt="System overview diagram">
   <figcaption style=" color: #555; margin-top: 8px;">
     AprilTag camera calibration GUI. The live camera feed (left) and the detected AprilTag pose table (right) are shown simultaneously. Adjust the camera position until the pose values match the table below.
   </figcaption>
@@ -95,7 +95,7 @@ Although the AprilTag pose estimator may output values close to Table A.2, there
     controls 
     preload="metadata" 
     style="width: 75%; height: auto; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-    <source src="https://huggingface.co/datasets/huggingface/documentation-images/resolve/main/lerobot/calibrate_so101_2.mp4" type="video/mp4">
+    <source src="https://github.com/IRVLUTD/irvlutd.github.io/blob/main/VLAReplica/setup-docs/images/app/visual_calibration.mp4" type="video/mp4">
     Your browser does not support the video tag.
   </video>
   <figcaption style="color: #555; margin-top: 12px; font-weight: bold;">
@@ -114,7 +114,7 @@ Although the AprilTag pose estimator may output values close to Table A.2, there
     A GUI window will pop up, overlaying the live wrist camera feed with a top view reference image. Slightly loosen the M3 screw on the wrist camera mount on the SO-101, and match the view of your camera with the reference image by rotating the camera mount along the end effector.
 
 <figure style="text-align: center; margin: 20px auto;">
-<img src="../images/app/visual_calibration.png" width=1200 style="height: auto; border-radius: 4px" alt="System overview diagram">
+<img src="https://github.com/IRVLUTD/irvlutd.github.io/blob/main/VLAReplica/setup-docs/images/app/visual_calibration.png" width=1200 style="height: auto; border-radius: 4px" alt="System overview diagram">
 <figcaption style=" color: #555; margin-top: 8px;">
 Visual calibration GUI. Top camera (top) and wrist camera (bottom) calibration over time. The cameras are adjusted physically until the overlay match the reference image.
 </figcaption>
@@ -176,7 +176,7 @@ python benchmark.py \
 
 2. Grab the corresponding objects needed for that scene (i.e. red plate and bread A for the first task) and then move the objects to their reference image positions so that the live camera and overlay image are identical to each other. 
       * <figure style="text-align: center; margin: 20px auto">
-    <img src="../images/app/benchmark_gui.png" width=1000 style="height: auto; border-radius: 4px" alt="System overview diagram">
+    <img src="https://github.com/IRVLUTD/irvlutd.github.io/blob/main/VLAReplica/setup-docs/images/app/benchmark_gui.png" width=1000 style="height: auto; border-radius: 4px" alt="System overview diagram">
     <figcaption style=" color: #555; margin-top: 8px;">
       benchmark.py live video evaluation GUI. The user is currently setting up the scene for the "Put bread on plate" task.
     </figcaption>
@@ -196,7 +196,7 @@ python benchmark.py \
 
 ## List of Tasks & Success Criterion
 
-The full list of tasks is located under [Task Reference](../task-reference)
+The full list of tasks is located under [Task Reference](https://irvlutd.github.io/VLAReplica/setup-docs/task-reference)
 
 | Task | Goal | Success condition |
 | --- | --- | --- |
