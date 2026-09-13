@@ -171,7 +171,7 @@ The following optional environment variables can be set to override defaults:
 
 Use the evaluation script `benchmark.py` to run a policy across predefined ID or OOD tasks, with predefined reference images. Refer to the table below for all CLI flags.
 
-Currently, the script supports the following models: `{act,smolvla,dit,xvla,pi0,pi05}`. Support for other VLA models will arrive soon. Feel free to modify the script to implement other VLA models of your liking.
+Currently, the script supports the following models: `{act,smolvla,dit,xvla,pi0,pi05,molmoact2}`. Support for other VLA models will arrive soon. Feel free to modify the script to implement other VLA models of your liking.
 
 Inside your virtual environment, run:
 ```
@@ -193,7 +193,7 @@ python benchmark.py \
 
 | Flag | Description |
 | :--- | :--- |
-| `--policy-type <model>` | Selects the policy family to evaluate. Currently supported models: `{act,smolvla,dit,xvla,pi0,pi05}` |
+| `--policy-type <model>` | Selects the policy family to evaluate. Currently supported models: `{act,smolvla,dit,xvla,pi0,pi05,molmoact2}` |
 | `--policy-path <path>` | Hugging Face repo ID or local path for the policy checkpoint. |
 | `--policy-from-hub` | If `--policy-path` directs to a Hugging Face repo ID, include this flag. Loads policy from Hugging Face Hub instead of local directory. |
 | `--run-all-tasks` | Runs evaluation across all 10 VLA-REPLICA tasks from task config, instead of single task. |
@@ -206,6 +206,32 @@ python benchmark.py \
 | `--eval-wrist-indexes <index>` | Wrist-camera index for the active arm. |
 | `--reset-mode fixed` | Uses a fixed reset action instead of teleoperated leader reset (we enabled this for the paper). |
 | `--reset-action-file <path>` | JSON file containing the normalized reset action vector required when `--reset-mode fixed` is used. (default: `arm_reset.json`) |
+
+### MolmoAct2 SO-100/SO-101
+
+MolmoAct2 uses AllenAI's `allenai/MolmoAct2-SO100_101` checkpoint directly through Transformers, so it works alongside the existing LeRobot 0.5.1 policies without replacing the installed LeRobot package. The first run downloads a large checkpoint (about 22 GB). On a 24 GB GPU, keep the default `bfloat16` mode and leave CUDA graphs disabled initially.
+
+First run a dry test. This reads the real cameras and joint state, downloads and runs the model, and records/prints predicted actions without sending policy actions to the follower:
+
+```
+python benchmark.py \
+  --policy-type molmoact2 \
+  --task-id task_01 \
+  --iterations 1 \
+  --policy-seconds 30 \
+  --eval-follower-calib-dirs calibration/robots/so101_follower \
+  --eval-follower-ports /dev/ttyACM1 \
+  --eval-follower-ids so101_follower_arm \
+  --eval-top-indexes 4 \
+  --eval-wrist-indexes 14 \
+  --reset-mode fixed \
+  --reset-action-file arm_reset.json \
+  --molmoact2-dry-run
+```
+
+Replace the serial port and camera indexes with the values reported on your machine. The released checkpoint uses the old LeRobot v2.1 SO-100 degree convention. For MolmoAct2, the evaluator configures LeRobot's follower in degree mode and converts to and from current SO-101 v3 coordinates using the official defaults `--molmoact2-joint-signs 1,-1,1,1,1,1` and `--molmoact2-joint-offsets 0,90,90,0,0,0`. MolmoAct2 remains in dry-run mode by default even if `--molmoact2-dry-run` is omitted. After checking the recorded actions, pass `--molmoact2-enable-hardware-actions` to allow policy control. The conservative defaults execute one predicted action per inference and limit each commanded joint change to 3 degrees relative to the current state in both the adapter and robot driver. Increase these limits only after validating the setup; a per-step clamp limits speed but cannot prevent a series of commands from reaching the table.
+
+MolmoAct2-specific options include `--molmoact2-dtype`, `--molmoact2-norm-tag`, `--molmoact2-num-steps`, `--molmoact2-actions-per-chunk`, `--molmoact2-enable-cuda-graph`, `--molmoact2-max-joint-step-deg`, `--molmoact2-joint-signs`, `--molmoact2-joint-offsets`, `--molmoact2-dry-run`, and `--molmoact2-enable-hardware-actions`.
 
 ## Evaluation process
 

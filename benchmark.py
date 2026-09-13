@@ -9,10 +9,11 @@ Usage:
         --task "pick up the object" \\
         --iterations 5
 
-Supports: act, smolvla, pi0, pi0_fast, pi05, dit, xvla
+Supports: act, smolvla, pi0, pi0_fast, pi05, dit, xvla, molmoact2
 """
 
 import argparse
+from collections import deque
 import json
 import os
 from pathlib import Path
@@ -207,7 +208,199 @@ POLICY_REGISTRY = {
         "default_path": "lerobot/x-vla",
         "default_robot_type": "so101_follower",
     },
+    "molmoact2": {
+        "default_path": "allenai/MolmoAct2-SO100_101",
+        "default_robot_type": "so101_follower",
+    },
 }
+
+
+class MolmoAct2PolicyAdapter:
+    """Direct Transformers adapter for AllenAI's SO-100/SO-101 checkpoint.
+
+    MolmoAct2 consumes two RGB images, an absolute six-joint robot state, and a
+    language instruction. It returns a chunk of absolute actions in robot scale,
+    so it intentionally bypasses LeRobot's normalized policy processors.
+    """
+
+    def __init__(
+        self,
+        model,
+        processor,
+        device: torch.device,
+        dtype: torch.dtype,
+        norm_tag: str,
+        num_steps: int,
+        actions_per_chunk: int,
+        enable_cuda_graph: bool,
+        max_joint_step_deg: float,
+        dry_run: bool,
+        joint_signs: np.ndarray,
+        joint_offsets: np.ndarray,
+    ):
+        self.model = model
+        self.processor = processor
+        self.device = device
+        self.dtype = dtype
+        self.norm_tag = norm_tag
+        self.num_steps = num_steps
+        self.actions_per_chunk = actions_per_chunk
+        self.enable_cuda_graph = enable_cuda_graph
+        self.max_joint_step_deg = max_joint_step_deg
+        self.dry_run = dry_run
+        self.joint_signs = np.asarray(joint_signs, dtype=np.float32)
+        self.joint_offsets = np.asarray(joint_offsets, dtype=np.float32)
+        self._action_queue: deque[tuple[np.ndarray, np.ndarray]] = deque()
+        self.last_debug: dict[str, Any] = {}
+
+    def reset(self) -> None:
+        self._action_queue.clear()
+        self.last_debug = {}
+
+    def _predict_chunk(self, images: list[np.ndarray], task: str, state: np.ndarray) -> None:
+        if state.shape != self.joint_signs.shape or state.shape != self.joint_offsets.shape:
+            raise ValueError(
+                f"MolmoAct2 joint transform has shape {self.joint_signs.shape}, but state has shape {state.shape}."
+            )
+        # The released checkpoint uses LeRobot v2.1 (old SO-100 degree) joint
+        # coordinates, while current SO-101 hardware reports v3 coordinates.
+        model_state = self.joint_signs * state + self.joint_offsets
+        autocast_enabled = self.device.type == "cuda" and self.dtype == torch.bfloat16
+        with torch.inference_mode(), torch.autocast(
+            device_type=self.device.type,
+            dtype=torch.bfloat16,
+            enabled=autocast_enabled,
+        ):
+            output = self.model.predict_action(
+                processor=self.processor,
+                images=images,
+                task=task,
+                state=model_state,
+                norm_tag=self.norm_tag,
+                inference_action_mode="continuous",
+                enable_depth_reasoning=False,
+                num_steps=self.num_steps,
+                normalize_language=True,
+                enable_cuda_graph=self.enable_cuda_graph,
+            )
+
+        raw_actions = output.actions
+        if isinstance(raw_actions, torch.Tensor):
+            raw_actions = raw_actions.detach().float().cpu().numpy()
+        actions = np.asarray(raw_actions, dtype=np.float32)
+        if actions.ndim == 3 and actions.shape[0] == 1:
+            actions = actions[0]
+        if actions.ndim == 1:
+            actions = actions[None, :]
+        if actions.ndim != 2 or actions.shape[1] != state.shape[0]:
+            raise ValueError(
+                f"MolmoAct2 returned action shape {actions.shape}; expected (chunk, {state.shape[0]})."
+            )
+        if not np.isfinite(actions).all():
+            raise ValueError("MolmoAct2 returned NaN or infinite action values.")
+
+        count = min(self.actions_per_chunk, actions.shape[0])
+        self._action_queue.extend((action, model_state.copy()) for action in actions[:count])
+        self.last_debug = {
+            "new_chunk": True,
+            "predicted_chunk": actions.copy(),
+            "executed_chunk_size": count,
+        }
+
+    def predict_action(
+        self,
+        images: list[np.ndarray],
+        task: str,
+        state: np.ndarray,
+    ) -> np.ndarray:
+        requested_new_chunk = not self._action_queue
+        if requested_new_chunk:
+            self._predict_chunk(images=images, task=task, state=state)
+
+        model_action, model_state = self._action_queue.popleft()
+        model_action = model_action.copy()
+        # Inverse of model_state = signs * arm_state + offsets. Signs are +/-1.
+        arm_target_unclamped = self.joint_signs * (model_action - self.joint_offsets)
+        action = arm_target_unclamped.copy()
+        if self.max_joint_step_deg > 0:
+            max_step = float(self.max_joint_step_deg)
+            action = np.clip(action, state - max_step, state + max_step)
+        chunk_debug = self.last_debug if requested_new_chunk else {}
+        self.last_debug = {
+            **chunk_debug,
+            "new_chunk": requested_new_chunk,
+            "arm_state": state.copy(),
+            "model_state": model_state,
+            "model_action": model_action,
+            "arm_target_unclamped": arm_target_unclamped,
+            "arm_action": action.copy(),
+            "arm_delta": action - state,
+            "clipped": ~np.isclose(action, arm_target_unclamped),
+            "queued_actions_remaining": len(self._action_queue),
+        }
+        return action.astype(np.float32, copy=False)
+
+
+def load_molmoact2_policy(
+    policy_path: str,
+    device: torch.device,
+    revision: str | None,
+    dtype_name: str,
+    norm_tag: str,
+    num_steps: int,
+    actions_per_chunk: int,
+    enable_cuda_graph: bool,
+    max_joint_step_deg: float,
+    dry_run: bool,
+    joint_signs: np.ndarray,
+    joint_offsets: np.ndarray,
+) -> MolmoAct2PolicyAdapter:
+    from transformers import AutoModelForImageTextToText, AutoProcessor
+
+    if device.type != "cuda":
+        raise RuntimeError("MolmoAct2 real-time inference requires a CUDA device.")
+
+    dtype = torch.bfloat16 if dtype_name == "bfloat16" else torch.float32
+    print(f"[INIT] Loading MolmoAct2 from {policy_path} ({dtype_name})")
+    processor = AutoProcessor.from_pretrained(
+        policy_path,
+        revision=revision,
+        trust_remote_code=True,
+    )
+    model = AutoModelForImageTextToText.from_pretrained(
+        policy_path,
+        revision=revision,
+        trust_remote_code=True,
+        dtype=dtype,
+    ).to(device).eval()
+    return MolmoAct2PolicyAdapter(
+        model=model,
+        processor=processor,
+        device=device,
+        dtype=dtype,
+        norm_tag=norm_tag,
+        num_steps=num_steps,
+        actions_per_chunk=actions_per_chunk,
+        enable_cuda_graph=enable_cuda_graph,
+        max_joint_step_deg=max_joint_step_deg,
+        dry_run=dry_run,
+        joint_signs=joint_signs,
+        joint_offsets=joint_offsets,
+    )
+
+
+def parse_molmoact2_joint_transform(value: str, flag_name: str) -> np.ndarray:
+    """Parse a six-value SO-100/SO-101 joint-frame transform option."""
+    parts = [part.strip() for part in value.split(",")]
+    if len(parts) != 6:
+        raise ValueError(f"{flag_name} must contain exactly 6 comma-separated values; got {len(parts)}.")
+    try:
+        result = np.asarray([float(part) for part in parts], dtype=np.float32)
+    except ValueError as exc:
+        raise ValueError(f"{flag_name} contains a non-numeric value: {value!r}") from exc
+    if not np.isfinite(result).all():
+        raise ValueError(f"{flag_name} values must all be finite.")
+    return result
 
 
 def can_open_cv_preview_window() -> bool:
@@ -394,6 +587,50 @@ class MultiRobot:
 
     def get_observation(self):
         return self.primary.get_observation()
+
+
+class FakeRobot:
+    """Minimal fake robot wrapper that avoids hardware access for dry-run/testing.
+
+    It mirrors the small subset of the SO101Follower API used by the evaluator:
+    `connect()`, `disconnect()`, `send_action()`, `get_observation()`, and
+    `action_features` / `observation_features` attributes.
+    """
+
+    def __init__(self, real_robot: Any, top_shape: tuple[int, int], wrist_shape: tuple[int, int], action_names: list[str]):
+        self._real = real_robot
+        # Preserve feature metadata so downstream code can build dataset frames
+        self.action_features = getattr(real_robot, "action_features", {})
+        self.observation_features = getattr(real_robot, "observation_features", {})
+        self.id = getattr(real_robot, "id", "fake_robot")
+        self._top_h, self._top_w = top_shape
+        self._wrist_h, self._wrist_w = wrist_shape
+        self._action_names = list(action_names) if action_names is not None else []
+
+    def connect(self):
+        print(f"[FAKE] Skipping hardware connect for {self.id}")
+
+    def disconnect(self):
+        print(f"[FAKE] Skipping hardware disconnect for {self.id}")
+
+    def send_action(self, action):
+        # No-op: intentionally do not forward commands to hardware
+        return None
+
+    def get_observation(self):
+        # Return synthetic top/wrist RGB images and a zero robot state vector.
+        top = np.full((self._top_h, self._top_w, 3), 128, dtype=np.uint8)
+        wrist = np.full((self._wrist_h, self._wrist_w, 3), 128, dtype=np.uint8)
+        # Provide state vector fallback under 'state' key if action names are known
+        state = np.zeros(len(self._action_names), dtype=np.float32)
+        return {
+            "observation": {
+                "top_camera": top,
+                "wrist_camera": wrist,
+                "state": state,
+            },
+            "state": state,
+        }
 
 
 def hw_to_dataset_features_compat(hw_feats, prefix: str):
@@ -826,6 +1063,73 @@ def extract_top_camera_image(observation: dict[str, Any]) -> np.ndarray | None:
     return candidates[0][2]
 
 
+def extract_molmoact2_inputs(
+    observation: dict[str, Any],
+    action_names: list[str],
+) -> tuple[list[np.ndarray], np.ndarray]:
+    """Extract top/wrist RGB images and raw joint state in action-name order."""
+    image_candidates: list[tuple[str, np.ndarray]] = []
+    for key, value in _iter_named_arrays(observation):
+        image = to_hwc_uint8_image(value)
+        if image is not None:
+            image_candidates.append((key.lower(), image))
+
+    if len(image_candidates) < 2:
+        raise ValueError(
+            f"MolmoAct2 requires two camera images; found {len(image_candidates)} in observation keys."
+        )
+
+    def choose_camera(tokens: tuple[str, ...], excluded: set[int]) -> int | None:
+        scored: list[tuple[int, int]] = []
+        for idx, (key, image) in enumerate(image_candidates):
+            if idx in excluded:
+                continue
+            score = sum(10 for token in tokens if token in key)
+            score += int(image.shape[0] * image.shape[1] / 100000)
+            scored.append((score, idx))
+        if not scored:
+            return None
+        scored.sort(reverse=True)
+        return scored[0][1]
+
+    top_idx = choose_camera(("top", "camera1", "front", "overhead"), set())
+    if top_idx is None:
+        raise ValueError("Could not select a top/third-person camera for MolmoAct2.")
+    wrist_idx = choose_camera(("wrist", "camera2", "side"), {top_idx})
+    if wrist_idx is None:
+        raise ValueError("Could not select a second camera for MolmoAct2.")
+
+    state_values: list[float] = []
+    missing: list[str] = []
+    for name in action_names:
+        value = observation.get(name)
+        if value is None:
+            value = observation.get(f"observation.{name}")
+        if value is None:
+            missing.append(name)
+            continue
+        arr = np.asarray(value)
+        if arr.size != 1:
+            raise ValueError(f"Joint state '{name}' must be scalar; got shape {arr.shape}.")
+        state_values.append(float(arr.reshape(-1)[0]))
+
+    if missing:
+        state_vector = observation.get("observation.state", observation.get("state"))
+        if state_vector is None:
+            raise KeyError(f"MolmoAct2 could not find joint observation keys: {missing}")
+        state = np.asarray(state_vector, dtype=np.float32).reshape(-1)
+        if state.shape[0] != len(action_names):
+            raise ValueError(
+                f"Fallback robot state has {state.shape[0]} values; expected {len(action_names)}."
+            )
+    else:
+        state = np.asarray(state_values, dtype=np.float32)
+
+    if not np.isfinite(state).all():
+        raise ValueError("Robot state contains NaN or infinite values.")
+    return [image_candidates[top_idx][1], image_candidates[wrist_idx][1]], state
+
+
 def bgr_to_rgb(image: np.ndarray) -> np.ndarray:
     if image.ndim == 2:
         return cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
@@ -843,9 +1147,29 @@ def load_reference_pose_image(
         return None, None
 
     pose_path = Path(reference_pose_dir) / f"pic{iteration_idx}.jpg"
+
+    # Fallbacks: accept common filenames (top.jpg, wrist.jpg, reference.jpg) or any image file in the folder
     if not pose_path.exists():
-        print(f"[WARN] Reference pose image missing for iteration {iteration_idx}: {pose_path}")
-        return None, pose_path
+        ref_dir = Path(reference_pose_dir)
+        candidates = []
+        for name in (f"pic{iteration_idx}.jpg", "top.jpg", "wrist.jpg", "reference.jpg", "ref.jpg"):
+            p = ref_dir / name
+            if p.exists():
+                candidates.append(p)
+        if not candidates:
+            # pick first image file in the directory
+            for ext in ("*.jpg", "*.jpeg", "*.png", "*.bmp"):
+                files = sorted(ref_dir.glob(ext))
+                if files:
+                    candidates.extend(files)
+                    break
+
+        if not candidates:
+            print(f"[WARN] Reference pose image missing for iteration {iteration_idx}: {pose_path}")
+            return None, pose_path
+
+        pose_path = candidates[0]
+        print(f"[INFO] Using reference pose image: {pose_path}")
 
     image = cv2.imread(str(pose_path))
     if image is None:
@@ -957,6 +1281,50 @@ def _make_run_timestamp() -> str:
     return time.strftime("%Y%m%d_%H%M%S")
 
 
+def print_molmoact2_dry_run_debug(
+    policy: MolmoAct2PolicyAdapter,
+    action_names: list[str],
+    task: str,
+    images: list[np.ndarray],
+) -> None:
+    """Print the complete model-frame -> arm-frame action conversion."""
+    debug = policy.last_debug
+    print("\n[MOLMOACT2 DRY RUN]")
+    print(f"  task: {task!r}")
+    print(f"  images: {[tuple(image.shape) for image in images]}")
+    print(f"  norm_tag: {policy.norm_tag}")
+    print("  transform: model = signs * arm + offsets")
+    print(f"  signs:   {policy.joint_signs.tolist()}")
+    print(f"  offsets: {policy.joint_offsets.tolist()}")
+    print(
+        "  {:<24} {:>10} {:>11} {:>12} {:>14} {:>10} {:>9}".format(
+            "joint", "arm_state", "model_state", "model_out", "arm_unclamped", "arm_cmd", "delta"
+        )
+    )
+    for idx, name in enumerate(action_names):
+        clipped = " CLIPPED" if bool(debug["clipped"][idx]) else ""
+        print(
+            f"  {name:<24} {debug['arm_state'][idx]:>10.3f} {debug['model_state'][idx]:>11.3f} "
+            f"{debug['model_action'][idx]:>12.3f} {debug['arm_target_unclamped'][idx]:>14.3f} "
+            f"{debug['arm_action'][idx]:>10.3f} {debug['arm_delta'][idx]:>9.3f}{clipped}"
+        )
+    print(
+        f"  max_step_deg: {policy.max_joint_step_deg:g}; "
+        f"queued_actions_remaining: {debug['queued_actions_remaining']}"
+    )
+    if debug.get("new_chunk"):
+        chunk = debug["predicted_chunk"]
+        print(
+            f"  full model-output chunk: shape={tuple(chunk.shape)}, "
+            f"executing_first={debug['executed_chunk_size']}"
+        )
+        for step, model_action in enumerate(chunk):
+            values = ", ".join(
+                f"{name}={float(model_action[idx]):.3f}" for idx, name in enumerate(action_names)
+            )
+            print(f"    [{step:02d}] {values}")
+
+
 def run_policy_phase(
     robot,
     policy,
@@ -1029,7 +1397,14 @@ def run_policy_phase(
             top_image_bgr = cv2.cvtColor(top_image, cv2.COLOR_RGB2BGR)
             video_writer.write(top_image_bgr)
 
-        if policy_type == "act":
+        if policy_type == "molmoact2":
+            images, state = extract_molmoact2_inputs(obs, action_names)
+            action_vec = policy.predict_action(images=images, task=task, state=state)
+            robot_action = {name: float(action_vec[idx]) for idx, name in enumerate(action_names)}
+            actions_list.append(action_vec.copy())
+            if policy.dry_run:
+                print_molmoact2_dry_run_debug(policy, action_names, task, images)
+        elif policy_type == "act":
             observation_frame = build_dataset_frame(
                 ds_features=ds_features,
                 values=obs,
@@ -1068,7 +1443,8 @@ def run_policy_phase(
             else:
                 actions_list.append(np.asarray(action).squeeze())
 
-        robot.send_action(robot_action)
+        if not (policy_type == "molmoact2" and policy.dry_run):
+            robot.send_action(robot_action)
 
         elapsed = time.time() - t0
         if elapsed < dt:
@@ -1106,7 +1482,11 @@ def run_teleop_setup_phase(
     reset_robot_action: dict[str, float] | None,
 ) -> bool:
     """Teleop phase before each policy run. Returns True to start policy, False to quit."""
-    mode_label = "leader controls follower" if reset_mode == "leader" else "fixed reset action"
+    mode_label = {
+        "leader": "leader controls follower",
+        "fixed": "fixed reset action",
+        "none": "manual reset (no leader or reset commands)",
+    }[reset_mode]
     print(
         f"[TELEOP] Iteration {iteration_idx}/{total_iterations}: {mode_label}. "
         "Press ENTER to start policy, q to quit."
@@ -1142,7 +1522,7 @@ def run_teleop_setup_phase(
             if reset_mode == "fixed":
                 if reset_robot_action is not None:
                     robot.send_action(reset_robot_action)
-            else:
+            elif reset_mode == "leader":
                 if teleop is None:
                     raise RuntimeError("Teleop leader is not initialized but reset_mode=leader")
                 action = teleop.get_action()
@@ -1227,7 +1607,7 @@ def run_final_teleop_buffer_phase(
 def main():
     parser = argparse.ArgumentParser(
         description=(
-            "Unified SO101 evaluator for ACT/SmolVLA/Pi0/Pi0.5/Pi0-fast/DiT with teleop-first handoff, "
+            "Unified SO101 evaluator for ACT/SmolVLA/Pi0/Pi0.5/Pi0-fast/DiT/X-VLA/MolmoAct2 with teleop-first handoff, "
             "top-camera zoom, OpenCV overlay visualization, and per-episode video recording."
         )
     )
@@ -1242,7 +1622,7 @@ def main():
     parser.add_argument(
         "--policy-family",
         type=str,
-        choices=["act", "smolvla", "pi0", "pi05", "pi0.5", "pi0-fast", "pi0_fast", "pi0fast", "dit", "xvla", "x-vla", "x_vla"],
+        choices=["act", "smolvla", "pi0", "pi05", "pi0.5", "pi0-fast", "pi0_fast", "pi0fast", "dit", "xvla", "x-vla", "x_vla", "molmoact2"],
         default=None,
         help="Alias for --policy-type.",
     )
@@ -1262,6 +1642,72 @@ def main():
         type=str,
         default=None,
         help="Optional Hugging Face revision/branch/tag/commit.",
+    )
+    parser.add_argument(
+        "--molmoact2-dtype",
+        choices=["bfloat16", "float32"],
+        default="bfloat16",
+        help="MolmoAct2 model dtype. bfloat16 is recommended for 24 GB GPUs.",
+    )
+    parser.add_argument(
+        "--molmoact2-norm-tag",
+        default="so100_so101_molmoact2",
+        help="Normalization tag stored in the MolmoAct2 checkpoint.",
+    )
+    parser.add_argument(
+        "--molmoact2-num-steps",
+        type=int,
+        default=10,
+        help="Number of continuous flow-solver steps.",
+    )
+    parser.add_argument(
+        "--molmoact2-actions-per-chunk",
+        type=int,
+        default=1,
+        help="Maximum predicted actions to execute before requesting a new chunk (default: 1 for safety).",
+    )
+    parser.add_argument(
+        "--molmoact2-enable-cuda-graph",
+        action="store_true",
+        help="Enable CUDA graph capture after initial testing (disabled by default).",
+    )
+    parser.add_argument(
+        "--molmoact2-max-joint-step-deg",
+        type=float,
+        default=3.0,
+        help="Clamp each absolute joint command relative to current state; 0 disables clamping.",
+    )
+    parser.add_argument(
+        "--molmoact2-dry-run",
+        dest="molmoact2_dry_run",
+        action="store_true",
+        default=True,
+        help="Run inference and record/print actions without sending commands to the robot (default).",
+    )
+    parser.add_argument(
+        "--molmoact2-enable-hardware-actions",
+        dest="molmoact2_dry_run",
+        action="store_false",
+        help=(
+            "DANGEROUS: allow MolmoAct2 to command the follower. Use only after checking calibration "
+            "and validating recorded dry-run state/action units and joint order."
+        ),
+    )
+    parser.add_argument(
+        "--molmoact2-joint-offsets",
+        default="0,90,90,0,0,0",
+        help=(
+            "Offsets for SO-101 v3 arm coordinates -> checkpoint v2.1 coordinates "
+            "(default: 0,90,90,0,0,0)."
+        ),
+    )
+    parser.add_argument(
+        "--molmoact2-joint-signs",
+        default="1,-1,1,1,1,1",
+        help=(
+            "Signs for SO-101 v3 arm coordinates -> checkpoint v2.1 coordinates "
+            "(default: 1,-1,1,1,1,1)."
+        ),
     )
 
     parser.add_argument(
@@ -1357,9 +1803,9 @@ def main():
     parser.add_argument(
         "--reset-mode",
         type=str,
-        choices=["leader", "fixed"],
+        choices=["leader", "fixed", "none"],
         default="leader",
-        help="Reset control mode: leader arm or fixed normalized action vector.",
+        help="Reset control mode: leader arm, fixed normalized action vector, or manual (none).",
     )
     parser.add_argument(
         "--reset-action-file",
@@ -1426,6 +1872,13 @@ def main():
     parser.add_argument("--wrist-width", type=int, default=640)
     parser.add_argument("--wrist-height", type=int, default=480)
     parser.add_argument("--wrist-fps", type=int, default=30)
+
+    parser.add_argument(
+        "--no-hardware",
+        dest="no_hardware",
+        action="store_true",
+        help="Do not connect to robot hardware or cameras; use synthetic observations (safe dry-run).",
+    )
 
     parser.add_argument(
         "--output-video-dir",
@@ -1508,6 +1961,21 @@ def main():
     if args.final_teleop_buffer_seconds < 0.0:
         raise ValueError("--final-teleop-buffer-seconds must be >= 0.0")
 
+    if args.molmoact2_num_steps <= 0:
+        raise ValueError("--molmoact2-num-steps must be > 0")
+    if args.molmoact2_actions_per_chunk <= 0:
+        raise ValueError("--molmoact2-actions-per-chunk must be > 0")
+    if args.molmoact2_max_joint_step_deg < 0.0:
+        raise ValueError("--molmoact2-max-joint-step-deg must be >= 0")
+    molmoact2_joint_offsets = parse_molmoact2_joint_transform(
+        args.molmoact2_joint_offsets, "--molmoact2-joint-offsets"
+    )
+    molmoact2_joint_signs = parse_molmoact2_joint_transform(
+        args.molmoact2_joint_signs, "--molmoact2-joint-signs"
+    )
+    if not np.isin(molmoact2_joint_signs, (-1.0, 1.0)).all():
+        raise ValueError("--molmoact2-joint-signs values must each be -1 or 1")
+
     registry_entry = POLICY_REGISTRY[args.policy_type]
     policy_path = args.policy_path or registry_entry["default_path"]
     robot_type = args.robot_type or registry_entry["default_robot_type"]
@@ -1515,13 +1983,39 @@ def main():
     device_str = "cuda" if torch.cuda.is_available() else "cpu"
     device = get_safe_torch_device(device_str, log=True)
 
-    policy = load_policy(
-        policy_type=args.policy_type,
-        policy_path=policy_path,
-        device=str(device),
-        policy_from_hub=args.policy_from_hub,
-        revision=args.policy_revision,
-    )
+    if args.policy_type == "molmoact2":
+        if args.molmoact2_dry_run:
+            print(
+                "[SAFETY] MolmoAct2 is in dry-run mode; policy actions will NOT be sent to the follower. "
+                "Live policy motion requires --molmoact2-enable-hardware-actions."
+            )
+        else:
+            print(
+                "[SAFETY WARNING] MolmoAct2 hardware actions are ENABLED. Keep an emergency stop ready "
+                "and verify that robot state/action units match the checkpoint's raw robot scale."
+            )
+        policy = load_molmoact2_policy(
+            policy_path=policy_path,
+            device=device,
+            revision=args.policy_revision,
+            dtype_name=args.molmoact2_dtype,
+            norm_tag=args.molmoact2_norm_tag,
+            num_steps=args.molmoact2_num_steps,
+            actions_per_chunk=args.molmoact2_actions_per_chunk,
+            enable_cuda_graph=args.molmoact2_enable_cuda_graph,
+            max_joint_step_deg=args.molmoact2_max_joint_step_deg,
+            dry_run=args.molmoact2_dry_run,
+            joint_signs=molmoact2_joint_signs,
+            joint_offsets=molmoact2_joint_offsets,
+        )
+    else:
+        policy = load_policy(
+            policy_type=args.policy_type,
+            policy_path=policy_path,
+            device=str(device),
+            policy_from_hub=args.policy_from_hub,
+            revision=args.policy_revision,
+        )
 
     # For pi0_fast, use optimized GPU-accelerated action tokenizer processor
     _preprocessor_overrides = {"device_processor": {"device": str(device)}}
@@ -1555,13 +2049,16 @@ def main():
         except Exception as _err:
             print(f"[WARN] Could not load optimized action tokenizer for pi0_fast: {_err}. Falling back to default.")
 
-    preprocess, postprocess = make_pre_post_processors(
-        policy.config,
-        policy_path,
-        preprocessor_config_filename="policy_preprocessor.json",
-        postprocessor_config_filename="policy_postprocessor.json",
-        preprocessor_overrides=_preprocessor_overrides,
-    )
+    if args.policy_type == "molmoact2":
+        preprocess, postprocess = None, None
+    else:
+        preprocess, postprocess = make_pre_post_processors(
+            policy.config,
+            policy_path,
+            preprocessor_config_filename="policy_preprocessor.json",
+            postprocessor_config_filename="policy_postprocessor.json",
+            preprocessor_overrides=_preprocessor_overrides,
+        )
 
     # Load optional global per-iteration task variants (only used when not running all tasks)
     task_variants: list[str] | None = None
@@ -1668,7 +2165,7 @@ def main():
         print("[INIT] Connecting leader...")
         teleop.connect()
     else:
-        print("[INIT] Leader teleop disabled (reset mode: fixed).")
+        print(f"[INIT] Leader teleop disabled (reset mode: {args.reset_mode}).")
 
     print(f"[INIT] Policy type : {args.policy_type}")
     print(f"[INIT] Policy path : {policy_path}")
@@ -1707,6 +2204,15 @@ def main():
                     id=follower_id,
                     cameras=_build_camera_cfg(top_index, wrist_index) if is_primary else {},
                     calibration_dir=Path(calib_dir_str),
+                    # MolmoAct2 was trained in degrees. LeRobot 0.5.1 otherwise
+                    # exposes v3 normalized joint ranges (-100..100 / 0..100),
+                    # which must never be sent directly to this checkpoint.
+                    use_degrees=args.policy_type == "molmoact2",
+                    max_relative_target=(
+                        args.molmoact2_max_joint_step_deg
+                        if args.policy_type == "molmoact2" and args.molmoact2_max_joint_step_deg > 0
+                        else None
+                    ),
                 )
                 raw_robot = SO101Follower(follower_cfg)
                 robots.append(ZoomRobot(raw_robot, zoom_factor=args.zoom))
@@ -1714,16 +2220,34 @@ def main():
             if args.primary_follower_index < 0 or args.primary_follower_index >= len(robots):
                 raise ValueError("--primary-follower-index is out of range for provided arms")
 
-            multi_robot = MultiRobot(robots, primary_idx=args.primary_follower_index)
-
-            print("[INIT] Connecting followers...")
-            multi_robot.connect()
-
-            primary_robot = robots[args.primary_follower_index]
-            action_features = hw_to_dataset_features_compat(primary_robot.action_features, "action")
-            obs_features = hw_to_dataset_features_compat(primary_robot.observation_features, "observation")
+            # Determine dataset feature metadata from the primary robot before touching hardware
+            primary_candidate = robots[args.primary_follower_index]
+            primary_raw = getattr(primary_candidate, "robot", primary_candidate)
+            action_features = hw_to_dataset_features_compat(primary_raw.action_features, "action")
+            obs_features = hw_to_dataset_features_compat(primary_raw.observation_features, "observation")
             ds_features = {**obs_features, **action_features}
             action_names = ds_features[ACTION]["names"]
+
+            # If requested, substitute fake robots that do not open cameras or serial ports
+            if args.no_hardware:
+                print("[INIT] No-hardware mode: using synthetic fake robots (no device access)")
+                fake_robots: list[Any] = []
+                for r in robots:
+                    raw = getattr(r, "robot", r)
+                    fake = FakeRobot(
+                        real_robot=raw,
+                        top_shape=(args.top_height, args.top_width),
+                        wrist_shape=(args.wrist_height, args.wrist_width),
+                        action_names=action_names,
+                    )
+                    fake_robots.append(fake)
+                robots = fake_robots
+
+            multi_robot = MultiRobot(robots, primary_idx=args.primary_follower_index)
+
+            if not args.no_hardware:
+                print("[INIT] Connecting followers...")
+                multi_robot.connect()
             reset_robot_action: dict[str, float] | None = None
             if args.reset_mode == "fixed":
                 if not args.reset_action_file:

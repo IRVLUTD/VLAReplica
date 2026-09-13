@@ -562,3 +562,5 @@ outputs/captured_images/opencv__dev_video2.png
 outputs/captured_images/opencv__dev_video4.png
 outputs/captured_images/opencv__dev_video2.png
 outputs/captured_images/opencv__dev_video4.png
+__pycache__/
+policy_eval_videos/

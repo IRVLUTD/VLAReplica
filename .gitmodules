@@ -1,0 +1,4 @@
+[submodule "molmoact2"]
+	path = molmoact2
+	url = https://github.com/goldPig888/molmoact2.git
+	branch = vlareplica-finetune
