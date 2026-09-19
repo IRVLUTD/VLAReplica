@@ -443,4 +443,41 @@ xvla)
   exit 1
   ;;
 
+###############################################################################
+# 8. Gr00t (NVIDIA Isaac GR00T foundation model)
+###############################################################################
+groot)
+  if [ "${MODE}" = "single" ]; then
+    ${LAUNCH} ${COMMON} \
+      --policy.type=groot \
+      --policy.tune_diffusion_model=false \
+      --output_dir=${OUTPUT_BASE}/0428_5task_groot_v4 \
+      --job_name=groot_5task_v4 \
+      --batch_size=16 \
+      --steps=40000 \
+      --num_workers=10 \
+      --save_freq=5000 \
+      --env_eval_freq=2500 \
+      $(hub_args VLAReplica_groot)
+  else
+    ${LAUNCH} ${COMMON} \
+      --policy.type=groot \
+      --policy.tune_diffusion_model=false \
+      --output_dir=${OUTPUT_BASE}/0428_5task_groot_v4_multigpu \
+      --job_name=groot_5task \
+      --batch_size=32 \
+      --steps=40000 \
+      --num_workers=10 \
+      --save_freq=5000 \
+      --env_eval_freq=2500 \
+      $(hub_args VLAReplica_groot_v4_multigpu)
+  fi
+  ;;
+
+*)
+  echo "Unknown policy: ${POLICY}"
+  echo "Usage: ./train.sh <act|smolvla|pi0|pi0_fast|pi05|dit|flow_matching_dit|xvla> [num_gpus]"
+  exit 1
+  ;;
+
 esac
